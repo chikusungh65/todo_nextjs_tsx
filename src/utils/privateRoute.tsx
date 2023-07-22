@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { RootState } from '../redux/store'; // Import the RootState from your Redux store
+import { RootState } from '../redux/store'; 
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -13,15 +13,15 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push('/signin'); // Redirect to the sign-in page if the user is not authenticated
+      router.push('/'); 
     }
   }, [isAuthenticated, router]);
 
   if (isAuthenticated) {
-    return <>{children}</>; // Render the children components if the user is authenticated
+    return <>{children}</>; 
   }
 
-  return null; // Return null if the user is not authenticated (to avoid rendering unauthenticated content)
+  return null; 
 };
 
 export default PrivateRoute;

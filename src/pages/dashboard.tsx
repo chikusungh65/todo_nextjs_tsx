@@ -1,21 +1,120 @@
-import React from 'react';
-import PrivateRoute from '../utils/privateRoute';
-import { useSelector } from 'react-redux';
-import { RootState } from '../redux/store';
-import TodoItem from '@/components/TodoItem';
-import TodoList from '@/components/TodoList';
+import type { NextPage } from 'next'
+import Head from 'next/head'
+import { firestore } from '../firebase/firebaseApi'
+import { collection, deleteDoc, doc, DocumentData, getDocs, limit, query, QueryDocumentSnapshot, updateDoc, where } from "@firebase/firestore";
+import styles from '../styles/Dashboard.module.css'
+import { useEffect, useState } from 'react';
+import PrivateRoute from '@/utils/privateRoute';
 
-const Dashboard: React.FC = () => {
-  const user = useSelector((state: RootState) => state.auth.user);
+const Dashboard: NextPage = () => {
+
+  const [todos,setTodos] = useState<QueryDocumentSnapshot<DocumentData>[]>([]);
+  const [loading,setLoading] = useState<boolean>(true);
+
+  useEffect( () => {
+    getTodos();
+    setTimeout( () => {
+      setLoading(false);
+    },2000)
+    
+  },[]);
+
+
+  const todosCollection = collection(firestore,'todos');
+
+  const getTodos = async () => {
+    const todosQuery = query(todosCollection,where('done','==',false),limit(10));
+    const querySnapshot = await getDocs(todosQuery);
+    const result: QueryDocumentSnapshot<DocumentData>[] = [];
+    querySnapshot.forEach((snapshot) => {
+      result.push(snapshot);
+    })
+    setTodos(result);
+  };
+
+  const updateTodo = async (documentId: string) => {
+  
+    const _todo = doc(firestore,`todos/${documentId}`);
+
+    await updateDoc(_todo,{
+      "done":true
+    });
+
+    getTodos();
+  }
+
+  const deleteTodo = async (documentId:string) => {
+     const _todo = doc(firestore,`todos/${documentId}`);
+
+     await deleteDoc(_todo);
+ 
+     getTodos();
+  }
 
   return (
     <PrivateRoute>
-      <div>
-        <h1>Welcome</h1> 
-        <TodoList/>
-      </div>
+<div className={styles.container}>
+      <Head>
+        <title>Todos app</title>
+        <meta name="description" content="Next.js firebase todos app" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <main className={styles.main}>
+
+        <h1 className={styles.title}>
+          Todos app
+        </h1>
+
+        <div className={styles.grid}>
+          {
+            loading ? (
+              <div className={styles.card}>
+                <h2>Loading</h2>
+              </div>
+            ): 
+            todos.length === 0 ? (
+              <div className={styles.card}>
+                <h2>No undone todos</h2>
+                <p>Consider adding a todo from <a href="/add-todo">here</a></p>
+              </div>
+            ) : (
+              todos.map((todo,index) => {
+                return (
+                  <div className={styles.card} key={index}> 
+
+                    <h2>{todo.data().title}</h2>
+                    <p>{todo.data().description}</p>
+
+                    <div className={styles.cardActions}>
+
+                    <button type="button" onClick={() => updateTodo(todo.id)}>Mark as done</button>
+
+                    <button type="button" onClick={() => deleteTodo(todo.id)}>Delete</button>
+
+                    </div>
+                    
+                  </div>
+                )
+              })
+            )
+          }
+        </div>
+
+      </main>
+
+      <footer className={styles.footer}>
+        <a
+          href="#"
+          rel="noopener noreferrer"
+        >
+          Todos app
+        </a>
+      </footer>
+    </div>
     </PrivateRoute>
-  );
-};
+    
+  )
+}
 
 export default Dashboard;

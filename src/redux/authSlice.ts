@@ -3,7 +3,7 @@ import { User } from '@/types/UserType';
 
 interface AuthState {
   isAuthenticated: boolean;
-  user: User | null; // Assuming you have a 'User' type for the authenticated user
+  user: User | null; 
 }
 
 const initialState: AuthState = {
@@ -15,10 +15,13 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Reducer functions for handling authentication state
+    login: (state, action: PayloadAction<User>) => {
+      state.isAuthenticated = true;
+      state.user = action.payload;
+    },
   },
 });
 
-export const { /* action creators */ } = authSlice.actions;
+export const { login /* , logout, otherActionCreators */ } = authSlice.actions;
 
 export default authSlice.reducer;
