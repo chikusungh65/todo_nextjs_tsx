@@ -5,6 +5,8 @@ import store  from '../redux/store';
 import { AppProps } from 'next/app';
 import '../styles/globals.css';
 
+
+
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <Provider store={store}>

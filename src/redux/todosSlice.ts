@@ -1,42 +1,46 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
-
 interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
+  id: string;
+  title: string;
+  description: string;
+  done: boolean;
 }
 
+interface TodoState {
+  todos: Todo[];
+  loading: boolean;
+}
 
-const initialState: Todo[] = [
-  { id: 1, text: 'Learn React', completed: false },
-  { id: 2, text: 'Build a TODO app', completed: true },
-];
+const initialState: TodoState = {
+  todos: [],
+  loading: true,
+};
 
-
-const todosSlice = createSlice({
+const todoSlice = createSlice({
   name: 'todos',
   initialState,
   reducers: {
-    addTodo: (state, action: PayloadAction<Todo>) => {
-      state.push(action.payload);
+    setTodo: (state, action: PayloadAction<Todo[]>) => {
+      state.todos = action.payload;
+      state.loading = false;
     },
-    updateTodo: (state, action: PayloadAction<Todo>) => {
-      const { id, text, completed } = action.payload;
-      const todoToUpdate = state.find((todo) => todo.id === id);
-      if (todoToUpdate) {
-        todoToUpdate.text = text;
-        todoToUpdate.completed = completed;
+    addTodos: (state, action: PayloadAction<Todo>) => {
+      state.todos.push(action.payload);
+    },
+    updateTodos: (state, action: PayloadAction<Todo>) => {
+      const { id, title, description, done } = action.payload;
+      const todoIndex = state.todos.findIndex((todo) => todo.id === id);
+      if (todoIndex !== -1) {
+        state.todos[todoIndex] = { ...state.todos[todoIndex], title, description, done };
       }
     },
-    deleteTodo: (state, action: PayloadAction<number>) => {
-      return state.filter((todo) => todo.id !== action.payload);
+    deleteTodos: (state, action: PayloadAction<string>) => {
+      state.todos = state.todos.filter((todo) => todo.id !== action.payload);
     },
   },
 });
 
+export const { setTodo, addTodos, updateTodos, deleteTodos } = todoSlice.actions;
 
-export const { addTodo, updateTodo, deleteTodo } = todosSlice.actions;
-
-
-export default todosSlice.reducer;
+export default todoSlice.reducer;

@@ -8,7 +8,7 @@ import { auth } from "../firebase/firebaseApi";
 import store from "@/redux/store";
 import { login } from "@/redux/authSlice";
 
-const LoginForm = () => {
+const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,9 +29,9 @@ const LoginForm = () => {
           email: user.email || "",
         };
   
-      
+        localStorage.setItem("userData", JSON.stringify(userData));
         dispatch(login(userData));
-        router.push('/dashboard');
+        router.push("/dashboard");
       }
     } catch (error) {
       setError("Invalid email or password"); 
@@ -115,4 +115,4 @@ const LoginForm = () => {
   );
 };
 
-export default LoginForm;
+export default SignIn;

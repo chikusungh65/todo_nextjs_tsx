@@ -1,119 +1,150 @@
-import type { NextPage } from 'next'
-import Head from 'next/head'
-import { firestore } from '../firebase/firebaseApi'
-import { collection, deleteDoc, doc, DocumentData, getDocs, limit, query, QueryDocumentSnapshot, updateDoc, where } from "@firebase/firestore";
-import styles from '../styles/Dashboard.module.css'
-import { useEffect, useState } from 'react';
-import PrivateRoute from '@/utils/privateRoute';
+import { doc } from '@firebase/firestore';
+import { setDoc } from 'firebase/firestore';
+import type { NextPage } from 'next';
+import Head from "next/head";
+import { useState } from 'react';
+import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from 'next/router';
+import { firestore } from '../firebase/firebaseApi';
+import TodoDetails from '@/components/TodoDetails';
+import { addTodos } from "@/redux/todosSlice";
+import { RootState } from "@/redux/store";
+import { logout } from "@/redux/authSlice";
+import { auth } from "../firebase/firebaseApi";
 
 const Dashboard: NextPage = () => {
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [message, setMessage] = useState<string>("");
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
 
-  const [todos,setTodos] = useState<QueryDocumentSnapshot<DocumentData>[]>([]);
-  const [loading,setLoading] = useState<boolean>(true);
+  const handleSubmit = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
 
-  useEffect( () => {
-    getTodos();
-    setTimeout( () => {
-      setLoading(false);
-    },2000)
-    
-  },[]);
+    if (!title || !description) {
+      return setError("All fields are required");
+    }
 
+    try {
+      const newTodo = {
+        id: Date.now().toString(),
+        title,
+        description,
+        done: false,
+      };
 
-  const todosCollection = collection(firestore,'todos');
-
-  const getTodos = async () => {
-    const todosQuery = query(todosCollection,where('done','==',false),limit(10));
-    const querySnapshot = await getDocs(todosQuery);
-    const result: QueryDocumentSnapshot<DocumentData>[] = [];
-    querySnapshot.forEach((snapshot) => {
-      result.push(snapshot);
-    })
-    setTodos(result);
+      dispatch(addTodos(newTodo));
+      await addTodo(); 
+    } catch (error) {
+      setError("An error occurred while adding todo");
+    }
   };
 
-  const updateTodo = async (documentId: string) => {
-  
-    const _todo = doc(firestore,`todos/${documentId}`);
+  const addTodo = async () => {
+    const timestamp: string = Date.now().toString();
 
-    await updateDoc(_todo,{
-      "done":true
-    });
+    const _todo = doc(firestore, `todos/${timestamp}`);
 
-    getTodos();
-  }
+    const todoData = {
+      title,
+      description,
+      done: false
+    };
 
-  const deleteTodo = async (documentId:string) => {
-     const _todo = doc(firestore,`todos/${documentId}`);
+    try {
+      await setDoc(_todo, todoData);
 
-     await deleteDoc(_todo);
- 
-     getTodos();
-  }
+      setMessage("Todo added successfully");
+
+      setTitle("");
+      setDescription("");
+    } catch (error) {
+
+      setError("An error occurred while adding todo");
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await auth.signOut();
+      
+      dispatch(logout());
+
+      router.push('/');
+    } catch (error) {
+      console.error("Failed to logout:", error);
+    }
+  };
 
   return (
-    <PrivateRoute>
-<div className={styles.container}>
+    <div className="max-w-md mx-auto mb-10 py-10">
       <Head>
-        <title>Todos app</title>
+        <title>Add todo</title>
         <meta name="description" content="Next.js firebase todos app" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-
-      <main className={styles.main}>
-
-        <h1 className={styles.title}>
-          Todos app
-        </h1>
-
-        <div className={styles.grid}>
-          {
-            loading ? (
-              <div className={styles.card}>
-                <h2>Loading</h2>
-              </div>
-            ): 
-            todos.length === 0 ? (
-              <div className={styles.card}>
-                <h2>No undone todos</h2>
-                <p>Consider adding a todo from <a href="/add-todo">here</a></p>
-              </div>
-            ) : (
-              todos.map((todo,index) => {
-                return (
-                  <div className={styles.card} key={index}> 
-
-                    <h2>{todo.data().title}</h2>
-                    <p>{todo.data().description}</p>
-
-                    <div className={styles.cardActions}>
-
-                    <button type="button" onClick={() => updateTodo(todo.id)}>Mark as done</button>
-
-                    <button type="button" onClick={() => deleteTodo(todo.id)}>Delete</button>
-
-                    </div>
-                    
-                  </div>
-                )
-              })
-            )
-          }
-        </div>
-
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="#"
-          rel="noopener noreferrer"
-        >
-          Todos app
-        </a>
-      </footer>
+      <div className="max-w-md mx-auto mb-10 py-10">
+        <h1 className="text-3xl font-bold text-center">Add todo</h1>
+        <form onSubmit={handleSubmit} className="mt-6 bg-white p-6 rounded-md shadow-md">
+          {error ? (
+            <div className="mb-4 text-red-500">
+              <p>{error}</p>
+            </div>
+          ) : null}
+          {message ? (
+            <div className="mb-4 text-green-500">
+              <p>
+                {message}
+              </p>
+            </div>
+          ) : null}
+          <div className="mb-4">
+            <label className="block text-sm font-medium">Title</label>
+            <input
+              type="text"
+              placeholder="Todo title"
+              onChange={(e) => setTitle(e.target.value)}
+              value={title}
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium">Description</label>
+            <textarea
+              placeholder="Todo description"
+              onChange={(e) => setDescription(e.target.value)}
+              value={description}
+              className="mt-1 p-2 block w-full border border-gray-300 rounded-md focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            />
+          </div>
+          <div className="mb-4">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+            >
+              Submit
+            </button>
+          </div>
+          <div className="mt-4">
+        {isAuthenticated ? (
+          <button
+            className="w-50 mt-2 ml-30 py-2 px-4 bg-black text-white rounded-lg hover:bg-red-700"
+            onClick={handleLogout}
+          >
+            Logout
+          </button>
+        ) : null}
+      </div>
+        </form>
+        <div className="mt-10">
+        <h1 className="text-3xl font-bold text-center mb-4">Todo List</h1>
+        <TodoDetails />
+      </div>
+      </div>
     </div>
-    </PrivateRoute>
-    
   )
 }
 
